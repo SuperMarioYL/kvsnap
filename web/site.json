@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "name": "kvsnap",
+  "github": "https://github.com/SuperMarioYL/kvsnap",
+  "host": "kvsnap.lei6393.com",
+  "lang": { "primary": "zh", "toggle": true },
+  "accent": ["#0d9488", "#0891b2", "#06b6d4"],
+  "hero": {
+    "eyebrow": { "zh": "信创气隙 · 重启即恢复 · 无需重算", "en": "Air-gap · Resume on Restart · No Recompute" },
+    "headline": {
+      "zh": "百万 token KV 缓存\n重启即恢复",
+      "en": "Million-token KV cache\nResumes on restart"
+    },
+    "sub": {
+      "zh": "信创气隙下 GLM-5.3 重启即丢 80GB 注意力状态？KVSnap 落盘保存、秒级恢复，跳过数小时 prefill 重算。",
+      "en": "GLM-5.3 loses its 80GB+ attention state on every restart in an air-gap? KVSnap checkpoints to disk and restores in seconds, skipping hours of prefill recompute."
+    },
+    "command": "pip install kvsnap",
+    "cta": {
+      "zh": "快速开始",
+      "en": "Quick Start"
+    },
+    "ctaGithub": {
+      "zh": "GitHub",
+      "en": "GitHub"
+    },
+    "scroll": {
+      "zh": "了解原理",
+      "en": "How it works"
+    }
+  },
+  "advantages": [
+    {
+      "title": {
+        "zh": "落盘保存百万 token KV 缓存",
+        "en": "Persist the million-token KV cache"
+      },
+      "body": {
+        "zh": "一条命令把 GLM-5.3 的整段注意力状态写入磁盘——自描述格式、每层 K/V 张量逐字节落盘，重启后原样注入新引擎。",
+        "en": "One command writes GLM-5.3's entire attention state to disk — a self-describing format with per-layer K/V tensors serialized byte-for-byte, injected back into a fresh engine on restart."
+      },
+      "chips": [
+        "› bfloat16 无损往返",
+        "› 自描述 KVS1 格式",
+        "› 单进程，无守护进程"
+      ]
+    },
+    {
+      "title": {
+        "zh": "重启秒级恢复，跳过 prefill",
+        "en": "Resume in seconds, skip prefill"
+      },
+      "body": {
+        "zh": "重启后按同一格式注入新引擎，跳过整段 prefill。气隙下无云端兜底时，数十分钟的重算变秒级恢复。",
+        "en": "After restart, inject the same bytes back into the fresh engine, skipping the entire prefill. Without cloud fallback in an air-gap, tens of minutes of recompute become seconds."
+      },
+      "chips": [
+        "› 架构指纹校验",
+        "› block 管理器状态恢复",
+        "› 昇腾 / 海光 GPU 适配"
+      ]
+    },
+    {
+      "title": {
+        "zh": "落盘即校验，篡改即拦截",
+        "en": "Verify on checkpoint, block tampering"
+      },
+      "body": {
+        "zh": "每个 blob 写入时计算 xxhash64，恢复前重算校验——磁盘错误、截断写入或被篡改的 blob 在进引擎前就被拦下。",
+        "en": "Every blob gets an xxhash64 on write, recomputed before restore — a torn write, disk error, or tampered blob is caught before it reaches the engine."
+      },
+      "chips": [
+        "› xxhash64 逐 blob 校验",
+        "› 截断 / 损坏检测",
+        "› 模型升级防错位"
+      ]
+    },
+    {
+      "title": {
+        "zh": "信创气隙专用，数据不出境",
+        "en": "Built for 信创 air-gap, data stays local"
+      },
+      "body": {
+        "zh": "离线 wheel 安装、无云端依赖、无外部服务调用。从落盘到恢复，全链路在气隙机房内完成。",
+        "en": "Offline wheel install, no cloud dependency, no external service calls. From checkpoint to restore, the entire pipeline stays inside the air-gapped machine room."
+      },
+      "chips": [
+        "› 离线 wheel 安装",
+        "› 无云端依赖",
+        "› 数据安全法 / 等保 2.0 合规"
+      ]
+    }
+  ],
+  "scene": {
+    "kind": "mesh",
+    "nodes": []
+  },
+  "cta": {
+    "headline": {
+      "zh": "重启即丢上下文的时代结束了",
+      "en": "The era of losing context on restart is over"
+    },
+    "sub": {
+      "zh": "三条命令验证整个落盘→校验→恢复链路，离线即可运行。",
+      "en": "Three commands verify the entire checkpoint→verify→restore pipeline, runnable offline."
+    },
+    "button": {
+      "zh": "开始使用",
+      "en": "Get Started"
+    }
+  },
+  "footer": {
+    "tag": {
+      "zh": "MIT 开源 · 信创气隙专用",
+      "en": "MIT open source · Built for 信创 air-gap"
+    }
+  },
+  "meta": {
+    "content_version": 1,
+    "generated_at": "2026-09-01T07:10:00Z"
+  }
+}
