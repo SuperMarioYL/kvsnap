@@ -1,0 +1,17 @@
+{
+  "version": "0.1.0",
+  "scope": "Seeded synthetic CPU tensors saved to disk, hash-verified, restored into a fresh InMemoryBackend and checked with torch.equal; no vLLM engine, GPU or model benchmark.",
+  "inputs": [
+    {
+      "path": "examples/presentation-demo.py",
+      "sha256": "c97490a3768093d0b3ad1970e2997127eb28ef722d46a43d1c162b14ed678c96"
+    }
+  ],
+  "steps": [
+    {
+      "command": ".venv/bin/python examples/presentation-demo.py",
+      "output": "{\n  \"backend\": \"CPU InMemoryBackend\",\n  \"layers\": 2,\n  \"blocks\": 3,\n  \"verified_blobs\": 5,\n  \"tensors_equal\": true,\n  \"block_map_equal\": true\n}\n",
+      "exit_code": 0
+    }
+  ]
+}

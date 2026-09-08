@@ -1,0 +1,38 @@
+{
+  "mode": "auto",
+  "id": "5671e6-966ae7-acd5f6-60968e5ac74e",
+  "identity": "https://github.com/supermarioyl/kvsnap",
+  "primary": "#5671e6",
+  "secondary": "#966ae7",
+  "highlight": "#acd5f6",
+  "dark": {
+    "bg": "#050812",
+    "panel": "#0c111f",
+    "code": "#0a0e1d",
+    "ink": "#eef7fd",
+    "muted": "#95a2c4",
+    "line": "#171f41",
+    "primary": "#5974e6",
+    "secondary": "#966ae7",
+    "highlight": "#acd5f6",
+    "accent": "#5974e6",
+    "buttonStart": "#536edf",
+    "buttonEnd": "#8860d2",
+    "buttonText": "#ffffff"
+  },
+  "light": {
+    "bg": "#f9fafe",
+    "panel": "#f7f8fe",
+    "code": "#f3f5fd",
+    "ink": "#131930",
+    "muted": "#556388",
+    "line": "#cbd4f7",
+    "primary": "#5068d5",
+    "secondary": "#815bc7",
+    "highlight": "#5d7385",
+    "accent": "#5068d5",
+    "buttonStart": "#536edf",
+    "buttonEnd": "#8860d2",
+    "buttonText": "#ffffff"
+  }
+}

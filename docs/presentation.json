@@ -1,0 +1,82 @@
+{
+  "name": "KVSnap",
+  "tagline": "Make KV tensor snapshots inspectable.",
+  "architecture": {
+    "title": "KVSnap / data flow",
+    "nodes": [
+      {
+        "title": "KVCacheBackend",
+        "detail": "Extract / inject snapshots"
+      },
+      {
+        "title": "Checkpoint writer",
+        "detail": "Manifest and tensor blobs"
+      },
+      {
+        "title": "Integrity verifier",
+        "detail": "xxhash64 / blob metadata"
+      },
+      {
+        "title": "Restore",
+        "detail": "Load then inject"
+      }
+    ],
+    "edges": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ]
+    ]
+  },
+  "process": {
+    "title": "KVSnap / example workflow",
+    "steps": [
+      {
+        "title": "Create CPU tensors",
+        "detail": "Seed 42 / two layers"
+      },
+      {
+        "title": "Save snapshot",
+        "detail": "Manifest plus five blobs"
+      },
+      {
+        "title": "Verify and restore",
+        "detail": "Fresh in-memory backend"
+      },
+      {
+        "title": "Compare tensors",
+        "detail": "torch.equal checks"
+      }
+    ],
+    "result": "Five blobs verify; K/V tensors and block_map are equal after restoration."
+  },
+  "integrations": {
+    "title": "KVSnap / supported routes",
+    "items": [
+      {
+        "title": "PyTorch tensors",
+        "detail": "CPU serialization"
+      },
+      {
+        "title": "Manifest YAML",
+        "detail": "Architecture / shapes / hashes"
+      },
+      {
+        "title": "Disk blobs",
+        "detail": "K / V / block mapping"
+      },
+      {
+        "title": "vLLM adapter",
+        "detail": "In-process integration code"
+      }
+    ]
+  }
+}

@@ -1,122 +1,236 @@
 {
-  "schema": 1,
-  "name": "kvsnap",
+  "schema": 3,
+  "name": "KVSnap",
   "github": "https://github.com/SuperMarioYL/kvsnap",
   "host": "kvsnap.lei6393.com",
-  "lang": { "primary": "zh", "toggle": true },
-  "accent": ["#0d9488", "#0891b2", "#06b6d4"],
+  "palette": "auto",
+  "lang": {
+    "primary": "zh",
+    "toggle": true
+  },
+  "meta": {
+    "visual_profile": "neon-particle",
+    "content_version": "0.1.0",
+    "demo_source": "docs/demo-results.json"
+  },
   "hero": {
-    "eyebrow": { "zh": "信创气隙 · 重启即恢复 · 无需重算", "en": "Air-gap · Resume on Restart · No Recompute" },
+    "eyebrow": {
+      "zh": "把 KV 张量、块映射与架构信息保存为磁盘快照，在恢复前校验内容。",
+      "en": "Store KV tensors, block mappings and architecture metadata as a disk snapshot and verify content before restoration."
+    },
     "headline": {
-      "zh": "百万 token KV 缓存\n重启即恢复",
-      "en": "Million-token KV cache\nResumes on restart"
+      "zh": "让 KV 张量快照可保存、可检查。",
+      "en": "Make KV tensor snapshots inspectable."
     },
     "sub": {
-      "zh": "信创气隙下 GLM-5.3 重启即丢 80GB 注意力状态？KVSnap 落盘保存、秒级恢复，跳过数小时 prefill 重算。",
-      "en": "GLM-5.3 loses its 80GB+ attention state on every restart in an air-gap? KVSnap checkpoints to disk and restores in seconds, skipping hours of prefill recompute."
+      "zh": "把 KV 张量、块映射与架构信息保存为磁盘快照，在恢复前校验内容。",
+      "en": "Store KV tensors, block mappings and architecture metadata as a disk snapshot and verify content before restoration."
     },
-    "command": "pip install kvsnap",
+    "href": "#quickstart",
     "cta": {
-      "zh": "快速开始",
-      "en": "Quick Start"
+      "zh": "运行示例",
+      "en": "Run the example"
     },
     "ctaGithub": {
-      "zh": "GitHub",
-      "en": "GitHub"
-    },
-    "scroll": {
-      "zh": "了解原理",
-      "en": "How it works"
+      "zh": "查看源码",
+      "en": "View source"
     }
+  },
+  "scene": {
+    "kind": "neon-graph",
+    "caption": {
+      "zh": "图示展示组件关系；实际输出见下方示例。",
+      "en": "An illustrative component scene; recorded output appears below."
+    },
+    "fallback": "/assets/presentation/scene-dark.svg",
+    "fallbackLight": "/assets/presentation/scene-light.svg"
   },
   "advantages": [
     {
       "title": {
-        "zh": "落盘保存百万 token KV 缓存",
-        "en": "Persist the million-token KV cache"
+        "zh": "自描述快照",
+        "en": "Self-describing snapshots"
       },
       "body": {
-        "zh": "一条命令把 GLM-5.3 的整段注意力状态写入磁盘——自描述格式、每层 K/V 张量逐字节落盘，重启后原样注入新引擎。",
-        "en": "One command writes GLM-5.3's entire attention state to disk — a self-describing format with per-layer K/V tensors serialized byte-for-byte, injected back into a fresh engine on restart."
-      },
-      "chips": [
-        "› bfloat16 无损往返",
-        "› 自描述 KVS1 格式",
-        "› 单进程，无守护进程"
-      ]
+        "zh": "manifest 保留架构与 blob 信息。",
+        "en": "The manifest preserves architecture and blob metadata."
+      }
     },
     {
       "title": {
-        "zh": "重启秒级恢复，跳过 prefill",
-        "en": "Resume in seconds, skip prefill"
+        "zh": "恢复前校验",
+        "en": "Verify before restoring"
       },
       "body": {
-        "zh": "重启后按同一格式注入新引擎，跳过整段 prefill。气隙下无云端兜底时，数十分钟的重算变秒级恢复。",
-        "en": "After restart, inject the same bytes back into the fresh engine, skipping the entire prefill. Without cloud fallback in an air-gap, tens of minutes of recompute become seconds."
-      },
-      "chips": [
-        "› 架构指纹校验",
-        "› block 管理器状态恢复",
-        "› 昇腾 / 海光 GPU 适配"
-      ]
+        "zh": "读取前检查磁盘内容哈希。",
+        "en": "Check disk-content hashes before restoration."
+      }
     },
     {
       "title": {
-        "zh": "落盘即校验，篡改即拦截",
-        "en": "Verify on checkpoint, block tampering"
+        "zh": "CPU 上复现",
+        "en": "Reproduce on CPU"
       },
       "body": {
-        "zh": "每个 blob 写入时计算 xxhash64，恢复前重算校验——磁盘错误、截断写入或被篡改的 blob 在进引擎前就被拦下。",
-        "en": "Every blob gets an xxhash64 on write, recomputed before restore — a torn write, disk error, or tampered blob is caught before it reaches the engine."
-      },
-      "chips": [
-        "› xxhash64 逐 blob 校验",
-        "› 截断 / 损坏检测",
-        "› 模型升级防错位"
-      ]
-    },
-    {
-      "title": {
-        "zh": "信创气隙专用，数据不出境",
-        "en": "Built for 信创 air-gap, data stays local"
-      },
-      "body": {
-        "zh": "离线 wheel 安装、无云端依赖、无外部服务调用。从落盘到恢复，全链路在气隙机房内完成。",
-        "en": "Offline wheel install, no cloud dependency, no external service calls. From checkpoint to restore, the entire pipeline stays inside the air-gapped machine room."
-      },
-      "chips": [
-        "› 离线 wheel 安装",
-        "› 无云端依赖",
-        "› 数据安全法 / 等保 2.0 合规"
-      ]
+        "zh": "格式往返不依赖运行中的模型。",
+        "en": "Format round trips do not need a running model."
+      }
     }
   ],
-  "scene": {
-    "kind": "mesh",
-    "nodes": []
+  "story": {
+    "intro": {
+      "title": {
+        "zh": "解决什么问题",
+        "en": "The task it solves"
+      },
+      "body": {
+        "zh": "缓存状态只有在进程内时，难以独立检查它保存了哪些张量、是否损坏、能否读回。KVSnap 把这些信息组成一个自描述目录，用 manifest 描述 blob，并提供保存、校验和恢复接口。",
+        "en": "In-process cache state is hard to inspect independently: which tensors were saved, are they intact and can they be read back? KVSnap packages that state as a self-describing directory with a manifest, blobs and save, verify and restore interfaces."
+      }
+    },
+    "sections": [
+      {
+        "title": {
+          "zh": "从输入到结果",
+          "en": "From input to result"
+        },
+        "body": {
+          "zh": "以 seed=42 创建小型合成 CPU KV 张量，走真实磁盘格式与校验路径，再恢复到新后端并逐张量比较。没有运行模型、GPU 或百万 token 上下文。",
+          "en": "Seed=42 creates small synthetic CPU KV tensors, exercises the real disk format and integrity checks, then restores into a fresh backend and compares tensors. No model, GPU or million-token context is run."
+        },
+        "image": {
+          "light": "/assets/presentation/process-light.svg",
+          "dark": "/assets/presentation/process-dark.svg",
+          "alt": {
+            "zh": "以 seed=42 创建小型合成 CPU KV 张量，走真实磁盘格式与校验路径，再恢复到新后端并逐张量比较。没有运行模型、GPU 或百万 token 上下文。",
+            "en": "Seed=42 creates small synthetic CPU KV tensors, exercises the real disk format and integrity checks, then restores into a fresh backend and compares tensors. No model, GPU or million-token context is run."
+          }
+        }
+      },
+      {
+        "title": {
+          "zh": "工作原理",
+          "en": "How it works"
+        },
+        "body": {
+          "zh": "KVCacheBackend 暴露 extract/inject。checkpoint 写入 manifest、逐层 K/V blob 与 block_map；verify 重算 xxhash64；restore 验证后读回张量并注入后端。InMemoryBackend 支持 CPU 往返验证，VLLMBackend 直接依赖特定引擎内部属性，接入需要单独验证。",
+          "en": "KVCacheBackend exposes extract/inject. checkpoint writes a manifest, per-layer K/V blobs and block_map; verify recomputes xxhash64; restore verifies, reads tensors and injects them into a backend. InMemoryBackend supports CPU round-trip checks. VLLMBackend directly depends on engine internals and requires separate integration validation."
+        },
+        "image": {
+          "light": "/assets/presentation/architecture-light.svg",
+          "dark": "/assets/presentation/architecture-dark.svg",
+          "alt": {
+            "zh": "KVCacheBackend 暴露 extract/inject。checkpoint 写入 manifest、逐层 K/V blob 与 block_map；verify 重算 xxhash64；restore 验证后读回张量并注入后端。InMemoryBackend 支持 CPU 往返验证，VLLMBackend 直接依赖特定引擎内部属性，接入需要单独验证。",
+            "en": "KVCacheBackend exposes extract/inject. checkpoint writes a manifest, per-layer K/V blobs and block_map; verify recomputes xxhash64; restore verifies, reads tensors and injects them into a backend. InMemoryBackend supports CPU round-trip checks. VLLMBackend directly depends on engine internals and requires separate integration validation."
+          }
+        }
+      },
+      {
+        "title": {
+          "zh": "能力与接入",
+          "en": "Capabilities and integration"
+        },
+        "body": {
+          "zh": "CLI 的 list/info/verify 面向磁盘目录。save --mock 和 restore --mock 用于 CPU 示例；程序 API 可嵌入服务进程。serve 包装提供 SIGUSR1 保存与启动恢复入口，但不能从 CPU 演示推导其在任意模型或硬件上的可用性。",
+          "en": "CLI list/info/verify operate on disk directories. save --mock and restore --mock exercise the CPU example; the Python API can be embedded in a serving process. The serve wrapper exposes SIGUSR1 saving and startup restoration, whose model and hardware compatibility cannot be inferred from the CPU demo."
+        },
+        "image": {
+          "light": "/assets/presentation/integrations-light.svg",
+          "dark": "/assets/presentation/integrations-dark.svg",
+          "alt": {
+            "zh": "CLI 的 list/info/verify 面向磁盘目录。save --mock 和 restore --mock 用于 CPU 示例；程序 API 可嵌入服务进程。serve 包装提供 SIGUSR1 保存与启动恢复入口，但不能从 CPU 演示推导其在任意模型或硬件上的可用性。",
+            "en": "CLI list/info/verify operate on disk directories. save --mock and restore --mock exercise the CPU example; the Python API can be embedded in a serving process. The serve wrapper exposes SIGUSR1 saving and startup restoration, whose model and hardware compatibility cannot be inferred from the CPU demo."
+          }
+        }
+      }
+    ],
+    "details": [
+      {
+        "title": {
+          "zh": "使用方式",
+          "en": "Usage"
+        },
+        "body": {
+          "zh": "CLI 的 list/info/verify 面向磁盘目录。save --mock 和 restore --mock 用于 CPU 示例；程序 API 可嵌入服务进程。serve 包装提供 SIGUSR1 保存与启动恢复入口，但不能从 CPU 演示推导其在任意模型或硬件上的可用性。",
+          "en": "CLI list/info/verify operate on disk directories. save --mock and restore --mock exercise the CPU example; the Python API can be embedded in a serving process. The serve wrapper exposes SIGUSR1 saving and startup restoration, whose model and hardware compatibility cannot be inferred from the CPU demo."
+        }
+      },
+      {
+        "title": {
+          "zh": "配置",
+          "en": "Configuration"
+        },
+        "body": {
+          "zh": "默认目录为 `.kvsnap`，默认会话名为 default。manifest 记录模型 ID、层数、KV 头数、head_dim、dtype、块数、序列长度、前缀哈希以及每个 blob 的形状和 xxhash64。`config.py` 定义格式与 vLLM 目标版本。xxhash 用于内容校验，不是签名或加密。",
+          "en": "The default directory is `.kvsnap` and session is default. The manifest records model ID, layers, KV heads, head_dim, dtype, blocks, sequence length, prefix hash and each blob’s shape and xxhash64. config.py defines the format and vLLM target version. xxhash is a content check, not a signature or encryption."
+        }
+      }
+    ]
   },
-  "cta": {
-    "headline": {
-      "zh": "重启即丢上下文的时代结束了",
-      "en": "The era of losing context on restart is over"
+  "demo": {
+    "title": {
+      "zh": "实际运行结果",
+      "en": "Actual demo output"
     },
-    "sub": {
-      "zh": "三条命令验证整个落盘→校验→恢复链路，离线即可运行。",
-      "en": "Three commands verify the entire checkpoint→verify→restore pipeline, runnable offline."
+    "note": {
+      "zh": "以 seed=42 创建小型合成 CPU KV 张量，走真实磁盘格式与校验路径，再恢复到新后端并逐张量比较。没有运行模型、GPU 或百万 token 上下文。",
+      "en": "Seed=42 creates small synthetic CPU KV tensors, exercises the real disk format and integrity checks, then restores into a fresh backend and compares tensors. No model, GPU or million-token context is run."
     },
-    "button": {
-      "zh": "开始使用",
-      "en": "Get Started"
+    "source": "https://github.com/SuperMarioYL/kvsnap/blob/main/docs/demo-results.json",
+    "steps": [
+      {
+        "label": {
+          "zh": "保存、校验并读回",
+          "en": "Save, verify and read back"
+        },
+        "body": {
+          "zh": "两层、三个块，共五个 blob；K/V 与块映射全部相等。",
+          "en": "Two layers and three blocks produce five blobs; K/V tensors and the block map are equal."
+        },
+        "command": ".venv/bin/python examples/presentation-demo.py",
+        "output": "{\n  \"backend\": \"CPU InMemoryBackend\",\n  \"layers\": 2,\n  \"blocks\": 3,\n  \"verified_blobs\": 5,\n  \"tensors_equal\": true,\n  \"block_map_equal\": true\n}\n",
+        "image": "/assets/presentation/demo-0-light.svg",
+        "imageDark": "/assets/presentation/demo-0-dark.svg"
+      }
+    ]
+  },
+  "quickstart": {
+    "title": {
+      "zh": "从完整输入开始",
+      "en": "Start with complete input"
+    },
+    "body": {
+      "zh": "需要 Python 3.12+、uv 和 PyTorch。源码默认安装即可运行 CPU 示例；实际 vLLM 接入另需对应引擎与硬件环境。",
+      "en": "Requires Python 3.12+, uv and PyTorch. The default source install runs the CPU example; actual vLLM integration additionally needs the corresponding engine and hardware."
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "安装",
+          "en": "Install"
+        },
+        "code": "git clone https://github.com/SuperMarioYL/kvsnap.git\ncd kvsnap\nuv venv --python 3.12\nuv pip install --python .venv/bin/python -e ."
+      },
+      {
+        "title": {
+          "zh": "运行自带示例",
+          "en": "Run the supplied example"
+        },
+        "code": ".venv/bin/python examples/presentation-demo.py"
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "zh": "未验证 GLM、昇腾、海光或特定 vLLM 版本；不声称秒级恢复或免除某个规模的 prefill。",
+      "en": "GLM, Ascend, Hygon and specific vLLM versions were not validated; no second-scale restore or prefill savings are claimed."
+    },
+    {
+      "zh": "当前适配器使用内部属性与部分推断状态；投入真实服务前必须检查调度器、前缀和块表契约。",
+      "en": "The adapter uses internal attributes and partially inferred state; inspect scheduler, prefix and block-table contracts before real serving use."
     }
-  },
+  ],
   "footer": {
-    "tag": {
-      "zh": "MIT 开源 · 信创气隙专用",
-      "en": "MIT open source · Built for 信创 air-gap"
-    }
-  },
-  "meta": {
-    "content_version": 1,
-    "generated_at": "2026-09-01T07:10:00Z"
+    "tag": "0.1.0 · Python 3.12+ / PyTorch · MIT"
   }
 }
