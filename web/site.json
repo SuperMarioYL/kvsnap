@@ -104,6 +104,10 @@
           "alt": {
             "zh": "以 seed=42 创建小型合成 CPU KV 张量，走真实磁盘格式与校验路径，再恢复到新后端并逐张量比较。没有运行模型、GPU 或百万 token 上下文。",
             "en": "Seed=42 creates small synthetic CPU KV tensors, exercises the real disk format and integrity checks, then restores into a fresh backend and compares tensors. No model, GPU or million-token context is run."
+          },
+          "mobile": {
+            "light": "/assets/presentation/process-mobile-light.svg",
+            "dark": "/assets/presentation/process-mobile-dark.svg"
           }
         }
       },
@@ -122,6 +126,10 @@
           "alt": {
             "zh": "KVCacheBackend 暴露 extract/inject。checkpoint 写入 manifest、逐层 K/V blob 与 block_map；verify 重算 xxhash64；restore 验证后读回张量并注入后端。InMemoryBackend 支持 CPU 往返验证，VLLMBackend 直接依赖特定引擎内部属性，接入需要单独验证。",
             "en": "KVCacheBackend exposes extract/inject. checkpoint writes a manifest, per-layer K/V blobs and block_map; verify recomputes xxhash64; restore verifies, reads tensors and injects them into a backend. InMemoryBackend supports CPU round-trip checks. VLLMBackend directly depends on engine internals and requires separate integration validation."
+          },
+          "mobile": {
+            "light": "/assets/presentation/architecture-mobile-light.svg",
+            "dark": "/assets/presentation/architecture-mobile-dark.svg"
           }
         }
       },
@@ -140,6 +148,10 @@
           "alt": {
             "zh": "CLI 的 list/info/verify 面向磁盘目录。save --mock 和 restore --mock 用于 CPU 示例；程序 API 可嵌入服务进程。serve 包装提供 SIGUSR1 保存与启动恢复入口，但不能从 CPU 演示推导其在任意模型或硬件上的可用性。",
             "en": "CLI list/info/verify operate on disk directories. save --mock and restore --mock exercise the CPU example; the Python API can be embedded in a serving process. The serve wrapper exposes SIGUSR1 saving and startup restoration, whose model and hardware compatibility cannot be inferred from the CPU demo."
+          },
+          "mobile": {
+            "light": "/assets/presentation/integrations-mobile-light.svg",
+            "dark": "/assets/presentation/integrations-mobile-dark.svg"
           }
         }
       }
