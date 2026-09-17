@@ -217,24 +217,45 @@ class VLLMBackend:
             )
         return list(kv)
 
-    def _block_table_for_prefix(self, seq_len: int) -> torch.Tensor:
-        """The int64 block ids covering the first ``seq_len`` prefix tokens."""
+    def _first_running_seq(self) -> Any:
+        """The sequence whose KV cache a checkpoint covers.
+
+        vLLM's scheduler keeps ``running`` as sequence *groups*; the block
+        table lives on the inner sequence. Both shapes are handled so the
+        accessor survives minor drift.
+        """
         eng = self._engine_core()
         scheduler = getattr(eng, "scheduler")
-        block_manager = getattr(scheduler, "block_manager")
-        num_blocks = (seq_len + self.block_size - 1) // self.block_size
-        # Read the prefix's block ids from the running sequence table.
         seqs = getattr(scheduler, "running", []) or []
         if not seqs:
             raise RuntimeError("no running sequence to checkpoint")
-        seq = seqs[0]
+        first = seqs[0]
+        get_seqs = getattr(first, "get_seqs", None)
+        if callable(get_seqs):
+            inner = get_seqs()
+            if inner:
+                return inner[0]
+        return first
+
+    def _block_table(self) -> torch.Tensor:
+        """The int64 block ids of the running sequence's prefix."""
+        seq = self._first_running_seq()
         block_table = list(getattr(seq, "block_table", []))
-        ids = block_table[:num_blocks]
-        if len(ids) < num_blocks:
-            raise RuntimeError(
-                f"sequence has {len(ids)} blocks but prefix needs {num_blocks}"
-            )
-        return torch.tensor(ids, dtype=torch.int64, device="cpu")
+        if not block_table:
+            raise RuntimeError("running sequence has an empty block table")
+        return torch.tensor(block_table, dtype=torch.int64, device="cpu")
+
+    def _seq_len(self, seq: Any, num_blocks_used: int) -> int:
+        # prefer the sequence's own token count; fall back to block math
+        get_len = getattr(seq, "get_len", None)
+        if callable(get_len):
+            try:
+                n = int(get_len())
+                if n > 0:
+                    return n
+            except Exception:  # noqa: BLE001 - length is best-effort metadata
+                pass
+        return int(num_blocks_used) * self.block_size
 
     def _total_blocks(self) -> int:
         eng = self._engine_core()
@@ -253,17 +274,33 @@ class VLLMBackend:
             raise RuntimeError(
                 f"engine has {len(kv)} KV layers, expected {num_layers}"
             )
+        # The checkpoint covers exactly the blocks the running sequence's
+        # block table references — not the whole allocated pool, which on a
+        # real engine is mostly dead blocks.
+        seq = self._first_running_seq()
+        block_map = self._block_table()
+        num_blocks_used = int(block_map.shape[0])
+        seq_len = self._seq_len(seq, num_blocks_used)
+
+        # Copy only the sequence's blocks, in table order, to CPU.
         layer_k: list[torch.Tensor] = []
         layer_v: list[torch.Tensor] = []
         for layer in range(num_layers):
             k_cache, v_cache = kv[layer]
-            # clone to CPU so the snapshot is device-independent on disk
-            layer_k.append(k_cache.detach().to("cpu").contiguous().clone())
-            layer_v.append(v_cache.detach().to("cpu").contiguous().clone())
-
-        # blocks actually holding prefix tokens (heuristic: last non-zero layer)
-        num_blocks_used = layer_k[0].shape[0]
-        block_map = self._block_table_for_prefix(self._seq_len(num_blocks_used))
+            layer_k.append(
+                k_cache.detach()
+                .index_select(0, block_map.to(k_cache.device))
+                .to("cpu")
+                .contiguous()
+                .clone()
+            )
+            layer_v.append(
+                v_cache.detach()
+                .index_select(0, block_map.to(v_cache.device))
+                .to("cpu")
+                .contiguous()
+                .clone()
+            )
 
         tokens = self._prefix_token_ids()
         prefix_raw = bytes(
@@ -279,7 +316,7 @@ class VLLMBackend:
         return KVSnapshot(
             model_id=self.model_id,
             arch=arch,
-            seq_len=self._seq_len(num_blocks_used),
+            seq_len=seq_len,
             prefix_hash=xxhash.xxh64(prefix_raw).hexdigest(),
             block_size=self.block_size,
             num_blocks_used=num_blocks_used,
@@ -296,20 +333,30 @@ class VLLMBackend:
                 f"engine has {len(kv)} KV layers, snapshot has "
                 f"{snapshot.arch.num_layers}"
             )
+        block_map = snapshot.block_map
+        if int(block_map.shape[0]) != snapshot.num_blocks_used:
+            raise RuntimeError(
+                "snapshot block_map does not match num_blocks_used"
+            )
         with torch.no_grad():
             for layer in range(snapshot.arch.num_layers):
                 k_dst, v_dst = kv[layer]
-                k_src = snapshot.layer_k[layer].to(self.device).to(k_dst.dtype)
-                v_src = snapshot.layer_v[layer].to(self.device).to(v_dst.dtype)
-                k_dst.copy_(k_src)
-                v_dst.copy_(v_src)
+                if int(block_map.max()) >= k_dst.shape[0]:
+                    raise RuntimeError(
+                        f"engine pool has {k_dst.shape[0]} blocks but the "
+                        f"checkpoint references block {int(block_map.max())}"
+                    )
+                ids = block_map.to(k_dst.device)
+                k_src = snapshot.layer_k[layer].to(k_dst.device).to(k_dst.dtype)
+                v_src = snapshot.layer_v[layer].to(v_dst.device).to(v_dst.dtype)
+                # Write each snapshot block back to its physical block id, so
+                # the restored tensors line up with the restored block table
+                # even when the pool was allocated at a different size.
+                k_dst.index_copy_(0, ids, k_src)
+                v_dst.index_copy_(0, ids, v_src)
         # The block table is restored through the scheduler so the engine's
         # sequence state stays consistent with the injected tensors.
         self._restore_block_table(snapshot)
-
-    def _seq_len(self, num_blocks_used: int) -> int:
-        # without a known prefix length we treat every used block as live
-        return int(num_blocks_used) * self.block_size
 
     def _prefix_token_ids(self) -> torch.Tensor:
         # Best-effort: a real integration passes the prompt token ids explicitly;
@@ -327,7 +374,7 @@ class VLLMBackend:
         seqs = getattr(scheduler, "running", []) or []
         if not seqs:
             return
-        seq = seqs[0]
+        seq = self._first_running_seq()
         ids = snapshot.block_map.tolist()
         try:
             seq.block_table = list(ids)  # type: ignore[attr-defined]

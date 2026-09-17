@@ -18,6 +18,8 @@ so it is fully testable without a GPU or vLLM.
 from __future__ import annotations
 
 import dataclasses
+import os
+import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -241,10 +243,36 @@ def _blob_path(kind: str, layer: int) -> str:
 def write_checkpoint(snapshot: KVSnapshot, dest_dir: str | Path) -> Path:
     """Serialise ``snapshot`` to ``dest_dir`` and return the directory path.
 
-    Atomic-ish: writes blobs to a temp suffix then renames the dir, so a crashed
-    save never leaves a half-valid checkpoint that restore would pick up.
+    Atomic: the whole checkpoint (blobs + manifest) is written into a sibling
+    temp dir, fsynced, then swapped into place. A save that dies mid-write can
+    never clobber the live session — the previous good checkpoint stays fully
+    verifiable, which matters in an air-gap deployment where it is the only
+    restart path.
     """
     dest = Path(dest_dir)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.parent / f"{dest.name}.tmp-{os.getpid()}-{time.time_ns()}"
+    backup = dest.parent / f"{dest.name}.last-good"
+    try:
+        _write_checkpoint_into(snapshot, tmp)
+        if dest.exists():
+            # keep the previous good session aside until the swap lands
+            _remove_tree(backup)
+            dest.rename(backup)
+            try:
+                tmp.rename(dest)
+            except OSError:
+                backup.rename(dest)  # roll back — the old session is still good
+                raise
+            _remove_tree(backup)
+        else:
+            tmp.rename(dest)
+    finally:
+        _remove_tree(tmp)
+    return dest
+
+
+def _write_checkpoint_into(snapshot: KVSnapshot, dest: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
 
     blobs: list[BlobRef] = []
@@ -275,7 +303,24 @@ def write_checkpoint(snapshot: KVSnapshot, dest_dir: str | Path) -> Path:
         yaml.safe_dump(manifest.to_dict(), sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
-    return dest
+    _fsync_tree(dest)
+
+
+def _remove_tree(path: Path) -> None:
+    if path.exists():
+        shutil.rmtree(path, ignore_errors=True)
+
+
+def _fsync_tree(dest: Path) -> None:
+    # Flush file data before the rename makes it visible as the session, so a
+    # post-swap power loss cannot surface a zero-filled blob.
+    for p in sorted(dest.iterdir()):
+        if p.is_file():
+            fd = os.open(p, os.O_RDONLY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
 
 
 def _write_blob(

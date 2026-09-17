@@ -62,7 +62,9 @@ def serve(
         f"[cyan]kvsnap[/] starting vLLM for [bold]{model}[/] "
         f"(target vLLM {config.VLLM_TARGET_VERSION})..."
     )
-    llm = LLM(model=model, dtype=dtype, block_size=block_size)
+    llm = LLM(
+        model=model, dtype=dtype, block_size=block_size, **_engine_kwargs(extra_vllm_args)
+    )
     backend = VLLMBackend(
         engine=llm,
         model_id=model,
@@ -89,7 +91,7 @@ def serve(
         f"`--restore {session}`."
     )
 
-    _run_openai_server(llm, host=host, port=port, extra_args=extra_vllm_args)
+    _run_openai_server(llm, host=host, port=port)
 
 
 def _install_sigusr1_hook(
@@ -119,9 +121,7 @@ def _install_sigusr1_hook(
         console.print("[red]SIGUSR1 unavailable on this platform[/]")
 
 
-def _run_openai_server(
-    llm: Any, host: str, port: int, extra_args: list[str] | None
-) -> None:
+def _run_openai_server(llm: Any, host: str, port: int) -> None:
     """Launch vLLM's OpenAI API server in-process over the loaded engine."""
     try:
         import uvicorn
@@ -138,6 +138,43 @@ def _run_openai_server(
     uvicorn.run(app, host=host, port=port)
 
 
+def _engine_kwargs(extra_args: list[str] | None) -> dict[str, Any]:
+    """Convert trailing ``kvsnap serve`` flags into ``LLM(**kwargs)``.
+
+    ``--gpu-memory-utilization 0.9`` becomes ``{"gpu_memory_utilization": 0.9}``;
+    bare flags become ``True``. Unknown flags are passed through untouched so
+    vLLM itself rejects them loudly instead of the wrapper silently eating an
+    operator's configuration.
+    """
+    kwargs: dict[str, Any] = {}
+    args = list(extra_args or [])
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if not arg.startswith("--"):
+            raise ValueError(f"unexpected trailing argument (expected --flag): {arg!r}")
+        key = arg[2:].replace("-", "_")
+        if i + 1 < len(args) and not args[i + 1].startswith("--"):
+            raw = args[i + 1]
+            i += 2
+        else:
+            raw = "True"
+            i += 1
+        kwargs[key] = _coerce_scalar(raw)
+    return kwargs
+
+
+def _coerce_scalar(raw: str) -> Any:
+    if raw.lower() in ("true", "false"):
+        return raw.lower() == "true"
+    for cast in (int, float):
+        try:
+            return cast(raw)
+        except ValueError:
+            continue
+    return raw
+
+
 def _to_torch_dtype(name: str):
     import torch
 
@@ -146,3 +183,14 @@ def _to_torch_dtype(name: str):
         "float16": torch.float16,
         "float32": torch.float32,
     }.get(name, torch.bfloat16)
+
+
+if __name__ == "__main__":  # pragma: no cover - exercised via subprocess tests
+    import sys
+
+    from .cli import cli
+
+    # `python -m kvsnap.serve` IS the serve command — route argv to it so the
+    # documented invocation `python -m kvsnap.serve --model ...` behaves
+    # identically to `kvsnap serve --model ...`.
+    sys.exit(cli(["serve", *sys.argv[1:]]))
