@@ -9,7 +9,7 @@
 
 **把 KV 张量、块映射与架构信息保存为磁盘快照，在恢复前校验内容。**
 
-`v0.1.0` · `Python 3.12+ / PyTorch` · [MIT](LICENSE)
+`v0.3.0` · `Python 3.12+ / PyTorch` · [MIT](LICENSE)
 
 [Website](https://kvsnap.lei6393.com) · [Demo record](docs/demo-results.json)
 

@@ -28,6 +28,24 @@ jobs:
         with:
           name: dist
           path: dist/*
+      - name: Attach wheel + sdist to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The release itself is cut by the publish script right after the tag
+          # push, which races this run — wait briefly for it, create it if it
+          # never appeared, then upload. Without this step the built artifacts
+          # only existed as an expiring workflow artifact, so the release page
+          # shipped with no downloadable assets at all.
+          for _ in $(seq 1 30); do
+            gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 && break
+            sleep 10
+          done
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" \
+                 --title "${GITHUB_REPOSITORY##*/} $GITHUB_REF_NAME" \
+                 --notes "Release $GITHUB_REF_NAME"
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber
 
   # Opt-in PyPI trusted publishing. A fresh repo has no Trusted Publisher
   # registered, so this job is skipped until the maintainer sets the

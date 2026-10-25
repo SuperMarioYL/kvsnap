@@ -1,9 +1,13 @@
 """quality-version-lockstep-test — no future bump can land half-done.
 
 The portfolio's most-repeated iteration defect is version drift (one surface
-bumped, the others stale). This test pins every surface of THIS repo to the
-same version: VERSION, kvsnap.config.VERSION, pyproject.toml, and (when the
-site exists) web/site.json meta.content_version.
+bumped, the others stale). v0.2.0 shipped exactly that: the guard then pinned
+only VERSION / kvsnap.config.VERSION / pyproject.toml / site.json
+``content_version``, so it passed while the README badge (both languages), the
+site footer tag and the recorded demo version stayed at v0.1.0.
+
+Every surface a release bump must touch is asserted here, so a half-done bump
+fails the suite instead of shipping.
 """
 
 from __future__ import annotations
@@ -23,21 +27,43 @@ def _norm(version: str) -> str:
     return version.strip().lstrip("v")
 
 
-def test_version_file_matches_config():
-    assert _norm((ROOT / "VERSION").read_text()) == _norm(config.VERSION)
+def _read(rel: str) -> str:
+    path = ROOT / rel
+    if not path.exists():
+        pytest.skip(f"no {rel} in this checkout")
+    return path.read_text(encoding="utf-8")
 
 
-def test_pyproject_version_matches_config():
-    match = re.search(
-        r'^version\s*=\s*"([^"]+)"', (ROOT / "pyproject.toml").read_text(), re.M
-    )
-    assert match, "no version field in pyproject.toml"
-    assert _norm(match.group(1)) == _norm(config.VERSION)
+def _site() -> dict:
+    return json.loads(_read("web/site.json"))
 
 
-def test_site_json_content_version_matches_config():
-    site = ROOT / "web" / "site.json"
-    if not site.exists():
-        pytest.skip("no web/site.json in this checkout")
-    data = json.loads(site.read_text())
-    assert _norm(data["meta"]["content_version"]) == _norm(config.VERSION)
+def _readme_badge(rel: str) -> str:
+    match = re.search(r"^`v(\d+\.\d+\.\d+)`", _read(rel), re.M)
+    assert match, f"no `vX.Y.Z` version line in {rel}"
+    return match.group(1)
+
+
+#: surface name -> how to read the version it advertises
+SURFACES = {
+    "VERSION": lambda: _read("VERSION"),
+    "kvsnap.config.VERSION": lambda: config.VERSION,
+    "pyproject.toml": lambda: re.search(
+        r'^version\s*=\s*"([^"]+)"', _read("pyproject.toml"), re.M
+    ).group(1),
+    "web/site.json content_version": lambda: _site()["meta"]["content_version"],
+    "web/site.json footer.tag": lambda: _site()["footer"]["tag"].split("·", 1)[0],
+    "docs/demo-results.json": lambda: json.loads(_read("docs/demo-results.json"))[
+        "version"
+    ],
+    "README.md": lambda: _readme_badge("README.md"),
+    "README.en.md": lambda: _readme_badge("README.en.md"),
+    "CHANGELOG.md head": lambda: re.search(
+        r"^## \[(\d+\.\d+\.\d+)\]", _read("CHANGELOG.md"), re.M
+    ).group(1),
+}
+
+
+@pytest.mark.parametrize("surface", sorted(SURFACES))
+def test_surface_matches_config(surface):
+    assert _norm(SURFACES[surface]()) == _norm(config.VERSION)

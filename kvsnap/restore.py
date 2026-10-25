@@ -45,7 +45,7 @@ def restore(
     """
     dest = config.session_dir(base_dir, session)
     if verify:
-        result = verify_checkpoint(dest)
+        result = verify_checkpoint(dest, session=session)
         if not result.ok:
             raise result.to_error()
     snapshot = read_checkpoint(dest)

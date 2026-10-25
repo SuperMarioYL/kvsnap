@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 #: Semantic version — single source for the release tag (mirrors VERSION file).
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 #: On-disk format identifier. Bump when the layout is intentionally breaking.
 FORMAT_MAGIC = "KVS1"

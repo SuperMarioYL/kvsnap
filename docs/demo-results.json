@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.3.0",
   "scope": "Seeded synthetic CPU tensors saved to disk, hash-verified, restored into a fresh InMemoryBackend and checked with torch.equal; no vLLM engine, GPU or model benchmark.",
   "inputs": [
     {

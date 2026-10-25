@@ -30,7 +30,7 @@ from .checkpoint import save as do_save
 from .restore import load, restore as do_restore
 from .verify import verify_checkpoint
 from .backend_vllm import InMemoryBackend, make_mock_snapshot
-from .storage import load_manifest
+from .storage import CheckpointError, load_manifest
 
 console = Console()
 
@@ -39,6 +39,10 @@ _dir_opt = click.option("--dir", "base_dir", default=None, envvar="KVSNAP_DIR",
                          help="Checkpoint root (default ./.kvsnap).")
 _session_opt = click.option("--session", default=config.DEFAULT_SESSION,
                             help="Checkpoint session name.")
+# A mock snapshot is built from the geometry flags, so a non-positive value
+# either crashes torch deep in the tensor factory or fabricates an empty
+# checkpoint that still verifies — reject it at the CLI boundary instead.
+_geometry = click.IntRange(min=1)
 
 
 def _resolve_session_dir(base_dir, session) -> Path:
@@ -58,10 +62,10 @@ def cli() -> None:
 @_dir_opt
 @click.option("--mock", is_flag=True, help="Use a fake KV cache (no vLLM/GPU).")
 @click.option("--model", default="glm-5.3-1m", help="Model id for the checkpoint.")
-@click.option("--layers", type=int, default=4, help="Mock: decoder layers.")
-@click.option("--kv-heads", type=int, default=8, help="Mock: KV heads per layer.")
-@click.option("--head-dim", type=int, default=128, help="Mock: head dim.")
-@click.option("--blocks", type=int, default=8, help="Mock: blocks used.")
+@click.option("--layers", type=_geometry, default=4, help="Mock: decoder layers.")
+@click.option("--kv-heads", type=_geometry, default=8, help="Mock: KV heads per layer.")
+@click.option("--head-dim", type=_geometry, default=128, help="Mock: head dim.")
+@click.option("--blocks", type=_geometry, default=8, help="Mock: blocks used.")
 @click.option("--dtype", default="bfloat16",
               type=click.Choice(["bfloat16", "float16", "float32"]))
 def save(session, base_dir, mock, model, layers, kv_heads, head_dim, blocks, dtype):
@@ -97,7 +101,10 @@ def restore(session, base_dir, mock):
             "<session>`; use `kvsnap restore --mock` to replay offline."
         )
     backend = InMemoryBackend()
-    result = do_restore(backend, session=session, base_dir=base_dir)
+    try:
+        result = do_restore(backend, session=session, base_dir=base_dir)
+    except CheckpointError as exc:
+        raise click.ClickException(str(exc))
     snap = backend.snapshot
     console.print(
         f"[green]✓[/] restored session [bold]{session}[/] "

@@ -9,7 +9,7 @@
 
 **Store KV tensors, block mappings and architecture metadata as a disk snapshot and verify content before restoration.**
 
-`v0.1.0` · `Python 3.12+ / PyTorch` · [MIT](LICENSE)
+`v0.3.0` · `Python 3.12+ / PyTorch` · [MIT](LICENSE)
 
 [Website](https://kvsnap.lei6393.com) · [Demo record](docs/demo-results.json)
 

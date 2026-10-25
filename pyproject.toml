@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kvsnap"
-version = "0.2.0"
+version = "0.3.0"
 description = "GLM-5.3 1M KV 缓存落盘恢复，信创气隙部署专用"
 readme = "README.md"
 requires-python = ">=3.12"
